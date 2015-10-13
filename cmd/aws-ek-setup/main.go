@@ -12,8 +12,7 @@ import (
 
 var (
 	// Version The version of the application (set by make file)
-	Version       = "UNKNOWN"
-	defaultRegion = "us-west-2"
+	Version = "UNKNOWN"
 
 	cmdRoot = &cobra.Command{
 		Use:   "aws-ek-setup",
@@ -39,7 +38,6 @@ func main() {
 
 func newAWSConfig() *aws.Config {
 	c := aws.NewConfig()
-	c = c.WithRegion(defaultRegion)
 	if rootOpts.AWSDebug {
 		c = c.WithLogLevel(aws.LogDebug)
 	}

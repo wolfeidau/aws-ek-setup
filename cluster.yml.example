@@ -1,0 +1,5 @@
+clusterName: testcluster
+# clusterSize: 1
+# instanceType: t2.small.elasticsearch
+# volumeSize: 20
+# zoneAware: false

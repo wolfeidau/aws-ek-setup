@@ -11,19 +11,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticsearchservice"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
 	cmdCreateCluster = &cobra.Command{
-		Use:   "create",
-		Short: "Create elasticsearch cluster.",
+		Use:   "up",
+		Short: "Create an elasticsearch cluster.",
 		Long:  ``,
 		Run:   runCmdCreateCluster,
 	}
-	clusterDomainName    string
-	clusterInstanceType  string
-	clusterInstanceCount int
-	clusterVolumeSize    int
 
 	arnRegex = regexp.MustCompile(`arn:aws:iam::(?P<aws_account_id>\d+):.*`)
 
@@ -43,15 +40,27 @@ var (
 )
 
 func init() {
-	cmdCreateCluster.Flags().StringVar(&clusterDomainName, "name", "", "The name of the cluster domain.")
-	cmdCreateCluster.Flags().StringVar(&clusterInstanceType, "instance-type", "t2.small.elasticsearch", "The instance type used in the cluster domain.")
-	cmdCreateCluster.Flags().IntVar(&clusterInstanceCount, "count", 1, "The cluster instance count.")
-	cmdCreateCluster.Flags().IntVar(&clusterVolumeSize, "size", 40, "The size of the disks in gigabytes.")
-
 	cmdRoot.AddCommand(cmdCreateCluster)
+
+	viper.SetConfigName("cluster")
+
+	// setup defaults for the configuration
+	viper.SetDefault("clusterName", "content")
+	viper.SetDefault("clusterSize", 1)
+	viper.SetDefault("instanceType", "t2.small.elasticsearch")
+	viper.SetDefault("volumeSize", 20)
+	viper.SetDefault("zoneAware", false)
+
 }
 
 func runCmdCreateCluster(cmd *cobra.Command, args []string) {
+
+	err := viper.ReadInConfig()
+
+	if err != nil {
+		stderr("Failed to load cluster configuration file: %v", err)
+		os.Exit(1)
+	}
 
 	// get the identify of the current user
 	resp, err := iamSvc.GetUser(&iam.GetUserInput{})
@@ -71,7 +80,7 @@ func runCmdCreateCluster(cmd *cobra.Command, args []string) {
 	}{
 		*resp.User.Arn,
 		accountID,
-		clusterDomainName,
+		viper.GetString("clusterName"),
 	}
 
 	var b bytes.Buffer
@@ -86,19 +95,18 @@ func runCmdCreateCluster(cmd *cobra.Command, args []string) {
 	}
 
 	// create an elastic search cluster
-
 	params := &elasticsearchservice.CreateElasticsearchDomainInput{
-		DomainName:     aws.String(clusterDomainName),
+		DomainName:     aws.String(viper.GetString("clusterName")),
 		AccessPolicies: aws.String(b.String()),
 		EBSOptions: &elasticsearchservice.EBSOptions{
 			EBSEnabled: aws.Bool(true),
-			VolumeSize: aws.Int64(int64(clusterVolumeSize)),
+			VolumeSize: aws.Int64(int64(viper.GetInt("volumeSize"))),
 			VolumeType: aws.String("gp2"),
 		},
 		ElasticsearchClusterConfig: &elasticsearchservice.ElasticsearchClusterConfig{
-			InstanceCount:        aws.Int64(int64(clusterInstanceCount)),
-			InstanceType:         aws.String(clusterInstanceType),
-			ZoneAwarenessEnabled: aws.Bool(false),
+			InstanceCount:        aws.Int64(int64(viper.GetInt("clusterSize"))),
+			InstanceType:         aws.String(viper.GetString("instanceType")),
+			ZoneAwarenessEnabled: aws.Bool(viper.GetBool("zoneAware")),
 		},
 	}
 
@@ -110,10 +118,7 @@ func runCmdCreateCluster(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println("DomainStatus: ", esresp.DomainStatus.String())
-
 }
-
-// aws es create-elasticsearch-domain --domain-name weblogs --elasticsearch-cluster-config InstanceType=m3.large.elasticsearch,InstanceCount=5,ZoneAwarenessEnabled=true --ebs-options EBSEnabled=true,VolumeType=gp2,VolumeSize=100 --access-policies ''
 
 func getAccountIdentifier(arn string) string {
 

@@ -14,18 +14,13 @@ make
 
 # usage
 
+Firstly create a `cluster.yml` in the current directory using the example provided.
+
 ```
-Create elasticsearch cluster.
+Create an elasticsearch cluster.
 
 Usage:
-  aws-ek-setup create [flags]
-
-Flags:
-      --count=1: The cluster instance count.
-      --instance-type="t2.small.elasticsearch": The instance type used in the cluster domain.
-      --name="": The name of the cluster domain.
-      --size=40: The size of the disks in gigabytes.
-
+  aws-ek-setup up [flags]
 
 Global Flags:
       --aws-debug[=false]: Log debug information from aws-sdk-go library
