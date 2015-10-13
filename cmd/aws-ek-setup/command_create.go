@@ -33,7 +33,7 @@ var (
         "AWS": "{{.UserARN}}"
       },
       "Action": "es:*",
-      "Resource": "arn:aws:es:us-east-1:{{.AccountID}}:{{.DomainName}}/logs/*"
+      "Resource": "arn:aws:es:{{.Region}}:{{.AccountID}}:{{.DomainName}}/logs/*"
     }
   ]
 }`
@@ -77,10 +77,12 @@ func runCmdCreateCluster(cmd *cobra.Command, args []string) {
 		UserARN    string
 		AccountID  string
 		DomainName string
+		Region     string
 	}{
 		*resp.User.Arn,
 		accountID,
 		viper.GetString("clusterName"),
+		"us-west-2",
 	}
 
 	var b bytes.Buffer
